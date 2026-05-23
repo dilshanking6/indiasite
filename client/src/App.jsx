@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import NamasteHeader from './components/NamasteHeader';
 import Home from './pages/Home';
@@ -10,6 +10,9 @@ import AIPage from './pages/AI';
 import SettingsPage from './pages/Settings';
 import HelpCenter from './pages/HelpCenter';
 import IdeaSubmission from './pages/IdeaSubmission';
+import TechSupport from './pages/TechSupport';
+import UserGuides from './pages/UserGuides';
+import SecurityVerification from './pages/SecurityVerification';
 import AdminDashboard from './pages/AdminDashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -49,9 +52,12 @@ function App() {
             <Route path="/chat" element={user ? <Chat /> : <Navigate to="/login" />} />
             <Route path="/ai" element={user ? <AIPage /> : <Navigate to="/login" />} />
             <Route path="/settings" element={user ? <SettingsPage /> : <Navigate to="/login" />} />
+            <Route path="/security/verification" element={user ? <SecurityVerification /> : <Navigate to="/login" />} />
             
             <Route path="/help" element={user ? <HelpCenter /> : <Navigate to="/login" />} />
             <Route path="/help/idea" element={user ? <IdeaSubmission /> : <Navigate to="/login" />} />
+            <Route path="/help/report" element={user ? <TechSupport /> : <Navigate to="/login" />} />
+            <Route path="/help/guides" element={user ? <UserGuides /> : <Navigate to="/login" />} />
             
             <Route path="/admin/ideas" element={user ? <AdminDashboard /> : <Navigate to="/login" />} />
             
@@ -75,5 +81,4 @@ function App() {
   );
 }
 
-import { useState } from 'react';
 export default App;
