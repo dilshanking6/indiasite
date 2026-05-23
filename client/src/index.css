@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme {
+  --color-india-saffron: #FF9933;
+  --color-india-white: #FFFFFF;
+  --color-india-green: #138808;
+  --color-india-blue: #000080;
+  --color-india-accent: #FF6B35;
+}
+
+@utility btn-india {
+  @apply px-6 py-2 rounded-full font-semibold transition-all duration-300;
+}
+
+@utility btn-india-saffron {
+  @apply btn-india bg-india-saffron text-white hover:opacity-90 shadow-lg shadow-orange-100;
+}
+
+@utility btn-india-green {
+  @apply btn-india bg-india-green text-white hover:opacity-90 shadow-lg shadow-green-100;
+}
+
+@utility namaste-card {
+  @apply p-6 rounded-2xl bg-white shadow-xl border-t-4 border-india-saffron;
+}
+
+@utility india-gradient {
+  background: linear-gradient(45deg, #FF9933, #FF6B35, #FF9933);
+}
+
+@utility story-gradient {
+  background: linear-gradient(45deg, #FF9933, #FFFFFF, #138808);
+}
+
+@utility glass-morphism {
+  @apply bg-white/20 backdrop-blur-md border border-white/30;
+}
+
+body {
+  @apply bg-[#FAFAFA] text-gray-900;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@keyframes flag-wave {
+  0% { border-radius: 4px; transform: scale(1); }
+  50% { border-radius: 8px 12px 8px 12px; transform: scale(1.02); }
+  100% { border-radius: 4px; transform: scale(1); }
+}
+
+@keyframes wave-vibe {
+  0% { transform: perspective(1000px) rotateY(0deg) rotateX(0deg); }
+  25% { transform: perspective(1000px) rotateY(5deg) rotateX(2deg); }
+  50% { transform: perspective(1000px) rotateY(0deg) rotateX(0deg); }
+  75% { transform: perspective(1000px) rotateY(-5deg) rotateX(-2deg); }
+  100% { transform: perspective(1000px) rotateY(0deg) rotateX(0deg); }
+}
+
+.flag-animation {
+  animation: wave-vibe 4s infinite ease-in-out;
+}
