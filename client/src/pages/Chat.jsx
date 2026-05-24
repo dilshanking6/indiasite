@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
-import { Send, Search, User, MoreVertical, Phone, Video, Smile, Paperclip, MessageCircle, ChevronLeft } from 'lucide-react';
+import { Send, Search, User, MoreVertical, Phone, Video, Smile, Paperclip, MessageCircle, ChevronLeft, Edit2, Check, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const Chat = () => {
@@ -9,35 +9,85 @@ const Chat = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
-  const targetUser = queryParams.get('u');
+  const targetUsername = queryParams.get('u');
 
   const [activeChat, setActiveChat] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
+  const [editingMessage, setEditingMessage] = useState(null);
   const [chatList, setChatList] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (targetUser) {
-      setActiveChat({ 
-        username: targetUser, 
-        profilePicture: `https://api.dicebear.com/7.x/avataaars/svg?seed=${targetUser}` 
-      });
-    }
-  }, [targetUser]);
+    fetchChatList();
+  }, []);
 
-  const handleSendMessage = (e) => {
-    e.preventDefault();
-    if (!inputText.trim()) return;
-    
-    const newMsg = { 
-      text: inputText, 
-      sender: user?.id, 
-      timestamp: new Date(),
-      id: Date.now() 
+  useEffect(() => {
+    const initChat = async () => {
+      if (targetUsername) {
+        try {
+          const res = await api.get(`/api/users/profile/${targetUsername}`);
+          setActiveChat({
+            username: res.data.username,
+            profilePicture: res.data.profilePicture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${res.data.username}`
+          });
+        } catch (err) {
+          console.error('Failed to init chat with user:', err);
+          // Fallback if profile fetch fails
+          setActiveChat({
+            username: targetUsername,
+            profilePicture: `https://api.dicebear.com/7.x/avataaars/svg?seed=${targetUsername}`
+          });
+        }
+      }
     };
-    setMessages(prev => [...prev, newMsg]);
-    setInputText('');
+    initChat();
+  }, [targetUsername]);
+
+  useEffect(() => {
+    let interval;
+    if (activeChat) {
+      fetchMessages();
+      interval = setInterval(fetchMessages, 5000);
+    }
+    return () => clearInterval(interval);
+  }, [activeChat]);
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!inputText.trim() || !activeChat) return;
+    
+    try {
+      if (editingMessage) {
+        await api.put(`/api/chat/message/${editingMessage._id}`, { text: inputText });
+        setEditingMessage(null);
+      } else {
+        await api.post('/api/chat/send', {
+          receiver: activeChat.username,
+          text: inputText
+        });
+      }
+      setInputText('');
+      fetchMessages();
+      fetchChatList();
+    } catch (err) {
+      console.error('Action failed:', err);
+    }
+  };
+
+  const handleDeleteMessage = async (msgId) => {
+    if (!window.confirm('Delete this message?')) return;
+    try {
+      await api.delete(`/api/chat/message/${msgId}`);
+      fetchMessages();
+    } catch (err) {
+      console.error('Delete failed:', err);
+    }
+  };
+
+  const startEditing = (msg) => {
+    setEditingMessage(msg);
+    setInputText(msg.text);
   };
 
   if (!user) return <div className="p-20 text-center font-black">Loading Bharat Messages...</div>;
@@ -106,12 +156,24 @@ const Chat = () => {
                  </div>
                ) : (
                  messages.map((m) => (
-                   <motion.div key={m.id} initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} className={`flex ${m.sender === user?.id ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`p-5 rounded-[2.5rem] text-sm font-bold max-w-[75%] shadow-xl ${m.sender === user?.id ? 'bg-india-blue text-white rounded-tr-none shadow-blue-100' : 'bg-white text-gray-800 rounded-tl-none border border-gray-100 shadow-gray-100'}`}>
-                         {m.text}
-                         <p className={`text-[9px] mt-2 font-black uppercase tracking-widest ${m.sender === user?.id ? 'text-white/40' : 'text-gray-300'}`}>
-                            {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                         </p>
+                   <motion.div key={m._id || m.id} initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} className={`flex ${m.sender === user?.id || m.sender?._id === user?.id ? 'justify-end' : 'justify-start'} group`}>
+                      <div className={`flex items-end space-x-2 max-w-[75%] ${m.sender === user?.id || m.sender?._id === user?.id ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                         <img src={m.sender?.profilePicture || (m.sender === user?.id ? user?.profilePicture : activeChat.profilePicture) || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.sender?.username || 'user'}`} className="w-8 h-8 rounded-full border border-white shadow-sm" alt="p" />
+                         <div className="relative">
+                            <div className={`p-5 rounded-[2.5rem] text-sm font-bold shadow-xl ${m.sender === user?.id || m.sender?._id === user?.id ? 'bg-india-blue text-white rounded-tr-none shadow-blue-100' : 'bg-white text-gray-800 rounded-tl-none border border-gray-100 shadow-gray-100'}`}>
+                               {m.text}
+                               <p className={`text-[9px] mt-2 font-black uppercase tracking-widest ${m.sender === user?.id || m.sender?._id === user?.id ? 'text-white/40' : 'text-gray-300'}`}>
+                                  {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                               </p>
+                            </div>
+                            
+                            {(m.sender === user?.id || m.sender?._id === user?.id) && (
+                              <div className="absolute top-0 -left-12 hidden group-hover:flex flex-col space-y-1">
+                                 <button onClick={() => startEditing(m)} className="p-2 bg-white rounded-full shadow-md text-gray-400 hover:text-india-blue"><Edit2 size={14} /></button>
+                                 <button onClick={() => handleDeleteMessage(m._id)} className="p-2 bg-white rounded-full shadow-md text-gray-400 hover:text-red-500"><X size={14} /></button>
+                              </div>
+                            )}
+                         </div>
                       </div>
                    </motion.div>
                  ))
@@ -119,11 +181,12 @@ const Chat = () => {
             </div>
 
             <form onSubmit={handleSendMessage} className="p-8 bg-white border-t border-gray-100 flex items-center space-x-5 mx-10 mb-10 rounded-[3rem] shadow-2xl shadow-gray-200/50">
+               {editingMessage && <button onClick={() => { setEditingMessage(null); setInputText(''); }} className="p-2 text-red-500 hover:bg-red-50 rounded-full"><X size={20} /></button>}
                <Smile className="text-gray-300 hover:text-india-saffron cursor-pointer transition-colors" />
-               <input type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder="Type a message to your friend..." className="flex-1 bg-transparent border-none outline-none font-bold text-sm" />
+               <input type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder={editingMessage ? "Edit message..." : "Type a message to your friend..."} className="flex-1 bg-transparent border-none outline-none font-bold text-sm" />
                <Paperclip className="text-gray-300 cursor-pointer" />
                <button type="submit" disabled={!inputText.trim()} className={`p-4 rounded-2xl transition-all shadow-lg ${inputText.trim() ? 'bg-india-blue text-white shadow-blue-200 scale-105' : 'bg-gray-100 text-gray-300'}`}>
-                  <Send size={22} />
+                  {editingMessage ? <Check size={22} /> : <Send size={22} />}
                </button>
             </form>
           </>

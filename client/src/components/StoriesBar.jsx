@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../api';
-import { Plus, X, Heart, Send, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Plus, X, Heart, Send, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -86,6 +86,16 @@ const StoriesBar = () => {
     }
   };
 
+  const handleLikeStory = async (storyId) => {
+    try {
+      await api.post(`/api/stories/${storyId}/like`);
+      // Update local state if needed
+      fetchStories();
+    } catch (err) {
+      console.error('Like story failed:', err);
+    }
+  };
+
   return (
     <div className="flex space-x-5 overflow-x-auto pb-6 pt-4 px-4 no-scrollbar border-b border-gray-100 mb-8">
       {/* Add Story */}
@@ -93,7 +103,7 @@ const StoriesBar = () => {
         <div className="p-[3px] rounded-full bg-gray-100 group-hover:bg-india-gradient transition-all shadow-sm">
           <div className="bg-white p-[3px] rounded-full">
             <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gray-50 flex items-center justify-center relative overflow-hidden">
-              <img src={user?.profilePicture} className="w-full h-full object-cover opacity-60 group-hover:opacity-100" alt="me" />
+              <img src={user?.profilePicture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username}`} className="w-full h-full object-cover opacity-60 group-hover:opacity-100" alt="me" />
               <div className="absolute inset-0 flex items-center justify-center bg-black/5"><Plus className="text-india-blue" size={28} /></div>
             </div>
           </div>
@@ -107,7 +117,7 @@ const StoriesBar = () => {
         <div key={story._id} onClick={() => setSelectedStoryIndex(i)} className="flex flex-col items-center space-y-2 shrink-0 cursor-pointer">
           <div className="p-[3px] rounded-full bg-india-gradient shadow-md">
             <div className="bg-white p-[3px] rounded-full">
-              <img src={story.user?.profilePicture} className="w-16 h-16 md:w-20 md:h-20 rounded-full object-cover" alt="story" />
+              <img src={story.user?.profilePicture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${story.user?.username}`} className="w-16 h-16 md:w-20 md:h-20 rounded-full object-cover" alt="story" />
             </div>
           </div>
           <span className="text-[11px] text-gray-700 font-black truncate w-20 text-center">{story.user?.username}</span>
@@ -128,7 +138,7 @@ const StoriesBar = () => {
 
             <div className="absolute top-8 left-0 right-0 p-6 flex items-center justify-between z-[220]">
                <div className="flex items-center space-x-3">
-                  <img src={stories[selectedStoryIndex].user?.profilePicture} className="w-9 h-9 rounded-full border border-white/20" alt="p" />
+                  <img src={stories[selectedStoryIndex].user?.profilePicture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${stories[selectedStoryIndex].user?.username}`} className="w-9 h-9 rounded-full border border-white/20" alt="p" />
                   <span className="text-white font-black text-sm">{stories[selectedStoryIndex].user?.username}</span>
                </div>
                <button onClick={() => setSelectedStoryIndex(null)} className="text-white"><X size={28} /></button>
@@ -142,7 +152,9 @@ const StoriesBar = () => {
 
             <div className="absolute bottom-0 left-0 right-0 p-6 flex items-center space-x-4 z-[220] bg-gradient-to-t from-black/80 to-transparent">
                 <input type="text" placeholder="Message bhejein..." className="flex-1 bg-white/10 border-none rounded-full px-6 py-3.5 text-white placeholder-white/50 text-sm focus:ring-1 focus:ring-india-saffron" />
-                <button className="text-white hover:text-red-500 transition-all"><Heart size={28} /></button>
+                <button onClick={() => handleLikeStory(stories[selectedStoryIndex]._id)} className={`transition-all ${stories[selectedStoryIndex].likes?.includes(user?.id) ? 'text-red-500 scale-125' : 'text-white hover:text-red-500'}`}>
+                   <Heart size={28} fill={stories[selectedStoryIndex].likes?.includes(user?.id) ? 'currentColor' : 'none'} />
+                </button>
                 <button className="text-white hover:text-india-blue transition-all"><Send size={28} /></button>
             </div>
           </motion.div>

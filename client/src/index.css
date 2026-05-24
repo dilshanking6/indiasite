@@ -37,9 +37,38 @@
 }
 
 body {
-  @apply bg-[#FAFAFA] text-gray-900;
+  @apply text-gray-900;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  transition: background 0.5s ease, filter 0.5s ease;
+  background: 
+    radial-gradient(circle at 0% 0%, rgba(255, 153, 51, 0.05) 0%, transparent 25%),
+    radial-gradient(circle at 100% 100%, rgba(19, 136, 8, 0.05) 0%, transparent 25%),
+    #FCFBF7; /* Warm Off-white / Cream */
+  background-attachment: fixed;
 }
+
+/* Add a subtle Deshi pattern texture */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("https://www.transparenttextures.com/patterns/cubes.png");
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: -1;
+}
+
+
+.dark-mode-eye-protect {
+  filter: invert(0.9) hue-rotate(180deg);
+}
+
+.dark-mode-eye-protect img, 
+.dark-mode-eye-protect video,
+.dark-mode-eye-protect .no-invert {
+  filter: invert(1) hue-rotate(180deg);
+}
+
 
 @keyframes flag-wave {
   0% { border-radius: 4px; transform: scale(1); }

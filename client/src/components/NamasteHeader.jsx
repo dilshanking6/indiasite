@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Search, PlaySquare, MessageCircle, User, PlusSquare, Bell, Bot, Settings } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 const NamasteHeader = ({ onUploadClick }) => {
   const location = useLocation();
+  const { t } = useLanguage();
   
   const navItems = [
-    { icon: <Home size={28} />, label: 'Home', path: '/' },
-    { icon: <Search size={28} />, label: 'Explore', path: '/explore' },
-    { icon: <PlusSquare size={28} />, label: 'Create', path: '#', onClick: onUploadClick },
-    { icon: <PlaySquare size={28} />, label: 'Reels', path: '/reels' },
-    { icon: <Bot size={28} />, label: 'AI Chat', path: '/ai' },
-    { icon: <MessageCircle size={28} />, label: 'Messages', path: '/chat' },
-    { icon: <User size={28} />, label: 'Profile', path: '/profile' },
+    { icon: <Home size={28} />, label: t('home'), path: '/' },
+    { icon: <Search size={28} />, label: t('explore'), path: '/explore' },
+    { icon: <PlusSquare size={28} />, label: t('post'), path: '#', onClick: onUploadClick },
+    { icon: <PlaySquare size={28} />, label: t('reels'), path: '/reels' },
+    { icon: <Bot size={28} />, label: t('ai'), path: '/ai' },
+    { icon: <MessageCircle size={28} />, label: t('messages'), path: '/chat' },
+    { icon: <User size={28} />, label: t('profile'), path: '/profile' },
   ];
 
   return (

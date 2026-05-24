@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Moon, Sun } from 'lucide-react';
 import NamasteHeader from './components/NamasteHeader';
 import Home from './pages/Home';
 import Explore from './pages/Explore';
@@ -26,6 +27,16 @@ function App() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const { user, loading } = useAuth();
+  const [isDarkMode, setIsDarkMode] = useState(localStorage.getItem('sleep_mode') === 'true');
+
+  useEffect(() => {
+    localStorage.setItem('sleep_mode', isDarkMode);
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark-mode-eye-protect');
+    } else {
+      document.documentElement.classList.remove('dark-mode-eye-protect');
+    }
+  }, [isDarkMode]);
 
   const handleUploadSuccess = () => {
     setRefreshKey(prev => prev + 1);
@@ -39,8 +50,18 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen transition-all duration-500">
         {user && <NamasteHeader onUploadClick={() => setIsUploadOpen(true)} />}
+        
+        {user && (
+          <button 
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className="fixed top-4 right-4 z-[100] p-3 bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-gray-100 hover:scale-110 transition-all active:scale-95"
+            title="Sleep Mode (Eye Protect)"
+          >
+            {isDarkMode ? <Sun className="text-india-saffron" size={20} /> : <Moon className="text-india-blue" size={20} />}
+          </button>
+        )}
         
         <main className={`container mx-auto pb-24 sm:pb-8 pt-4 sm:pt-2 ${!user ? 'pt-0' : ''}`}>
           <Routes>

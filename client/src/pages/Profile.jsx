@@ -12,11 +12,14 @@ const Profile = () => {
   
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
+  const [savedPosts, setSavedPosts] = useState([]);
   const [activeTab, setActiveTab] = useState('posts');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [showFollowersList, setShowFollowersList] = useState(false);
+  const [showFollowingList, setShowFollowingList] = useState(false);
 
   const [editData, setEditData] = useState({
     username: '',
@@ -26,12 +29,28 @@ const Profile = () => {
   });
 
   const targetUsername = username || currentUser?.username;
+  const isOwnProfile = currentUser?.username === profile?.username;
 
   useEffect(() => {
     if (targetUsername) {
       fetchProfile();
     }
   }, [targetUsername, currentUser]);
+
+  useEffect(() => {
+    if (activeTab === 'saved' && isOwnProfile) {
+      fetchSavedPosts();
+    }
+  }, [activeTab]);
+
+  const fetchSavedPosts = async () => {
+    try {
+      const res = await api.get('/api/users/saved-content');
+      setSavedPosts(res.data);
+    } catch (err) {
+      console.error('Fetch saved failed:', err);
+    }
+  };
 
   const fetchProfile = async () => {
     try {
@@ -152,8 +171,8 @@ const Profile = () => {
           
           <div className="flex justify-center md:justify-start space-x-12 mb-8">
             <div className="flex flex-col"><span className="font-black text-xl">{posts.length}</span><span className="text-xs text-gray-500 font-bold uppercase tracking-wider">Posts</span></div>
-            <div className="flex flex-col"><span className="font-black text-xl">{profile?.followers?.length || 0}</span><span className="text-xs text-gray-500 font-bold uppercase tracking-wider">Followers</span></div>
-            <div className="flex flex-col"><span className="font-black text-xl">{profile?.following?.length || 0}</span><span className="text-xs text-gray-500 font-bold uppercase tracking-wider">Following</span></div>
+            <div className="flex flex-col cursor-pointer" onClick={() => setShowFollowersList(true)}><span className="font-black text-xl">{profile?.followers?.length || 0}</span><span className="text-xs text-gray-500 font-bold uppercase tracking-wider">Followers</span></div>
+            <div className="flex flex-col cursor-pointer" onClick={() => setShowFollowingList(true)}><span className="font-black text-xl">{profile?.following?.length || 0}</span><span className="text-xs text-gray-500 font-bold uppercase tracking-wider">Following</span></div>
           </div>
 
           <div className="space-y-2 bg-gray-50/50 p-6 rounded-[2rem] inline-block min-w-full md:min-w-[400px]">
@@ -167,15 +186,26 @@ const Profile = () => {
         <button onClick={() => setActiveTab('posts')} className={`flex items-center space-x-2 py-4 border-t-2 ${activeTab === 'posts' ? 'border-india-blue text-india-blue' : 'border-transparent text-gray-400'}`}>
           <Grid size={18} /> <span className="text-xs font-black uppercase tracking-widest">Feed</span>
         </button>
+        {isOwnProfile && (
+          <button onClick={() => setActiveTab('saved')} className={`flex items-center space-x-2 py-4 border-t-2 ${activeTab === 'saved' ? 'border-india-blue text-india-blue' : 'border-transparent text-gray-400'}`}>
+            <Bookmark size={18} /> <span className="text-xs font-black uppercase tracking-widest">Saved</span>
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-3 gap-1 md:gap-6">
-        {posts.map((post) => (
-          <div key={post._id} className="relative aspect-square bg-gray-100 rounded-2xl overflow-hidden shadow-sm">
-            <img src={post.videoUrl} className="w-full h-full object-cover" alt="Post" />
+        {(activeTab === 'posts' ? posts : savedPosts).map((post) => (
+          <div key={post._id} onClick={() => navigate(post.mediaType === 'image' ? '/' : `/reels?id=${post._id}`)} className="relative aspect-square bg-gray-100 rounded-2xl overflow-hidden shadow-sm cursor-pointer hover:opacity-80 transition-opacity">
+            <img src={post.videoUrl} className="w-full h-full object-cover" alt="Content" />
           </div>
         ))}
       </div>
+
+      {!loading && (activeTab === 'posts' ? posts : savedPosts).length === 0 && (
+         <div className="text-center py-20 text-gray-400 font-black uppercase tracking-widest text-xs">
+            No {activeTab} yet
+         </div>
+      )}
 
       <AnimatePresence>
         {isEditModalOpen && (
@@ -191,6 +221,29 @@ const Profile = () => {
                   <textarea placeholder="Bio" className="w-full bg-gray-50 border-none rounded-2xl p-4 font-bold h-32" value={editData.bio} onChange={(e) => setEditData({...editData, bio: e.target.value})} />
                   <button type="submit" className="w-full bg-india-blue text-white font-black py-4 rounded-2xl">Save Changes</button>
                </form>
+            </motion.div>
+          </div>
+        )}
+
+        {(showFollowersList || showFollowingList) && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 backdrop-blur-md">
+            <div className="absolute inset-0 bg-black/40" onClick={() => { setShowFollowersList(false); setShowFollowingList(false); }} />
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="relative w-full max-w-sm bg-white rounded-[2.5rem] p-8 shadow-2xl max-h-[70vh] flex flex-col">
+               <div className="flex justify-between items-center mb-6">
+                  <span className="font-black text-xl">{showFollowersList ? 'Followers' : 'Following'}</span>
+                  <button onClick={() => { setShowFollowersList(false); setShowFollowingList(false); }}><X /></button>
+               </div>
+               <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+                  {(showFollowersList ? profile?.followers : profile?.following)?.map((u) => (
+                    <div key={u._id} onClick={() => { navigate(`/profile/${u.username}`); setShowFollowersList(false); setShowFollowingList(false); }} className="flex items-center space-x-4 p-3 hover:bg-gray-50 rounded-2xl cursor-pointer transition-all">
+                       <img src={u.profilePicture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} className="w-12 h-12 rounded-full border border-gray-100" alt="u" />
+                       <span className="font-black text-sm">{u.username}</span>
+                    </div>
+                  ))}
+                  {((showFollowersList ? profile?.followers : profile?.following)?.length === 0) && (
+                    <p className="text-center text-gray-400 font-bold py-10">No users found</p>
+                  )}
+               </div>
             </motion.div>
           </div>
         )}

@@ -11,6 +11,7 @@ const ReelCard = ({ reel, isActive }) => {
   const navigate = useNavigate();
   const [isPlaying, setIsPlaying] = useState(false);
   const [likes, setLikes] = useState(reel.likes || 0);
+  const [views, setViews] = useState(reel.views || 0);
   const [isLiked, setIsLiked] = useState(reel.likedBy?.includes(user?.id) || false);
   const [isSaved, setIsSaved] = useState(reel.savedBy?.includes(user?.id) || false);
   const [showComments, setShowComments] = useState(false);
@@ -19,20 +20,60 @@ const ReelCard = ({ reel, isActive }) => {
   const [showHeartAnim, setShowHeartAnim] = useState(false);
   const [lastTap, setLastTap] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [followingList, setFollowingList] = useState([]);
 
   const isVideo = reel.mediaType === 'video' || (!reel.mediaType && reel.videoUrl.match(/\.(mp4|webm|ogg)$/i));
+
+  useEffect(() => {
+    if (showShareModal) {
+      fetchFollowing();
+    }
+  }, [showShareModal]);
+
+  const fetchFollowing = async () => {
+    try {
+      const res = await api.get(`/api/users/profile/${user.username}`);
+      setFollowingList(res.data.following || []);
+    } catch (err) {
+      console.error('Fetch following failed:', err);
+    }
+  };
+
+  const handleShareToFriend = async (friendUsername) => {
+    try {
+      await api.post('/api/chat/send', {
+        receiver: friendUsername,
+        text: `Check out this reel: ${window.location.origin}/reels?id=${reel._id}`
+      });
+      alert('Sent to ' + friendUsername);
+      setShowShareModal(false);
+    } catch (err) {
+      alert('Failed to send');
+    }
+  };
 
   useEffect(() => {
     if (isVideo && videoRef.current) {
       if (isActive) {
         videoRef.current.play().catch(err => console.log("Autoplay blocked:", err));
         setIsPlaying(true);
+        handleView();
       } else {
         videoRef.current.pause();
         setIsPlaying(false);
       }
     }
   }, [isActive, isVideo]);
+
+  const handleView = async () => {
+    try {
+      await api.post(`/api/reels/${reel._id}/view`);
+      setViews(prev => prev + 1);
+    } catch (err) {
+      console.error('View count failed:', err);
+    }
+  };
 
   const goToProfile = (e) => {
     e.stopPropagation();
@@ -94,12 +135,7 @@ const ReelCard = ({ reel, isActive }) => {
 
   const handleShare = (e) => {
     if (e) e.stopPropagation();
-    if (navigator.share) {
-      navigator.share({ title: 'India Site Reel', text: reel.caption, url: window.location.origin + '/reels?id=' + reel._id });
-    } else {
-      navigator.clipboard.writeText(window.location.origin + '/reels?id=' + reel._id);
-      alert('Link copied!');
-    }
+    setShowShareModal(true);
   };
 
   return (
@@ -114,6 +150,27 @@ const ReelCard = ({ reel, isActive }) => {
         {showHeartAnim && (
           <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1.5, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
             <Heart className="text-white fill-white drop-shadow-2xl" size={100} />
+          </motion.div>
+        )}
+
+        {showShareModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-6">
+             <div className="bg-white rounded-[2.5rem] w-full max-w-xs p-6 shadow-2xl relative max-h-[60vh] flex flex-col">
+                <button onClick={() => setShowShareModal(false)} className="absolute top-4 right-4 text-gray-400"><X size={20} /></button>
+                <h3 className="font-black text-lg mb-4 text-gray-800">Send to Friend</h3>
+                <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-2">
+                   {followingList.map(u => (
+                     <div key={u._id} onClick={() => handleShareToFriend(u.username)} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-xl cursor-pointer transition-all">
+                        <div className="flex items-center space-x-3">
+                           <img src={u.profilePicture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} className="w-10 h-10 rounded-full border border-gray-100" alt="u" />
+                           <span className="font-bold text-sm text-gray-700">{u.username}</span>
+                        </div>
+                        <Send size={16} className="text-india-blue" />
+                     </div>
+                   ))}
+                   {followingList.length === 0 && <p className="text-center text-xs text-gray-400 font-bold py-10">Follow friends to share reels!</p>}
+                </div>
+             </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -150,6 +207,27 @@ const ReelCard = ({ reel, isActive }) => {
         <button onClick={() => setShowMenu(true)} className="p-3 bg-black/20 backdrop-blur-md rounded-full hover:bg-black/40 transition-all">
           <MoreHorizontal className="text-white" size={28} />
         </button>
+
+        <AnimatePresence>
+          {showMenu && (
+            <div className="fixed inset-0 z-[100] flex items-end justify-center">
+               <div className="absolute inset-0 bg-black/40" onClick={() => setShowMenu(false)} />
+               <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-md bg-white rounded-t-[3rem] p-8 space-y-4">
+                  <button onClick={() => { setShowMenu(false); alert('Reported to Bharat Moderation Team'); }} className="w-full text-left p-4 font-black text-red-500 hover:bg-red-50 rounded-2xl transition-all">Report Content</button>
+                  <button onClick={() => { setShowMenu(false); alert('We will show you less of this.'); }} className="w-full text-left p-4 font-black text-gray-800 hover:bg-gray-50 rounded-2xl transition-all">Not Interested</button>
+                  <button onClick={() => { setShowMenu(false); handleShare(); }} className="w-full text-left p-4 font-black text-gray-800 hover:bg-gray-50 rounded-2xl transition-all">Share to Friend</button>
+                  <button onClick={() => setShowMenu(false)} className="w-full p-4 font-black text-gray-400 bg-gray-50 rounded-2xl">Cancel</button>
+               </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        <div className="flex flex-col items-center">
+          <div className="p-3 bg-black/20 backdrop-blur-md rounded-full">
+            <Play className="text-white" size={24} fill="white" />
+          </div>
+          <span className="text-white text-[10px] mt-1 font-black drop-shadow-lg">{views}</span>
+        </div>
       </div>
 
       <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 via-black/40 to-transparent">
