@@ -6,11 +6,24 @@ const { Server } = require('socket.io');
 const http = require('http');
 
 const admin = require('firebase-admin');
-const serviceAccount = require('./serviceAccountKey.json');
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
+// Handle Firebase Service Account
+let serviceAccount;
+try {
+  serviceAccount = require('./serviceAccountKey.json');
+} catch (err) {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  } else {
+    console.error('Firebase service account key not found!');
+  }
+}
+
+if (serviceAccount) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+}
 
 dotenv.config();
 
