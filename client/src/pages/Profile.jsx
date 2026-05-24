@@ -29,7 +29,6 @@ const Profile = () => {
   });
 
   const targetUsername = username || currentUser?.username;
-  const isOwnProfile = currentUser?.username === profile?.username;
 
   useEffect(() => {
     if (targetUsername) {
