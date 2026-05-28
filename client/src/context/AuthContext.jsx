@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
         headers: { Authorization: `Bearer ${token}` }
       })
       .then(res => {
-        setUser(res.data);
+        setUser({ ...res.data, id: res.data.id || res.data._id });
       })
       .catch(() => {
         localStorage.removeItem('token');
@@ -29,14 +29,14 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const res = await axios.post('/api/auth/login', { email, password });
     localStorage.setItem('token', res.data.token);
-    setUser(res.data.user);
+    setUser({ ...res.data.user, id: res.data.user.id || res.data.user._id });
     return res.data;
   };
 
   const register = async (userData) => {
     const res = await axios.post('/api/auth/register', userData);
     localStorage.setItem('token', res.data.token);
-    setUser(res.data.user);
+    setUser({ ...res.data.user, id: res.data.user.id || res.data.user._id });
     return res.data;
   };
 

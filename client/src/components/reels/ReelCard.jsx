@@ -23,7 +23,7 @@ const ReelCard = ({ reel, isActive }) => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [followingList, setFollowingList] = useState([]);
 
-  const isVideo = reel.mediaType === 'video' || (!reel.mediaType && reel.videoUrl.match(/\.(mp4|webm|ogg)$/i));
+  const isVideo = reel.mediaType === 'video' || (!reel.mediaType && reel.videoUrl?.match(/\.(mp4|webm|ogg)$/i));
 
   useEffect(() => {
     if (showShareModal) {
@@ -40,13 +40,14 @@ const ReelCard = ({ reel, isActive }) => {
     }
   };
 
-  const handleShareToFriend = async (friendUsername) => {
+  const handleShareToFriend = async (friend) => {
     try {
+      const room = await api.post('/api/chat/room', { targetUserId: friend._id });
       await api.post('/api/chat/send', {
-        receiver: friendUsername,
+        roomId: room.data._id,
         text: `Check out this reel: ${window.location.origin}/reels?id=${reel._id}`
       });
-      alert('Sent to ' + friendUsername);
+      alert('Sent to ' + friend.username);
       setShowShareModal(false);
     } catch (err) {
       alert('Failed to send');
@@ -160,7 +161,7 @@ const ReelCard = ({ reel, isActive }) => {
                 <h3 className="font-black text-lg mb-4 text-gray-800">Send to Friend</h3>
                 <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-2">
                    {followingList.map(u => (
-                     <div key={u._id} onClick={() => handleShareToFriend(u.username)} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-xl cursor-pointer transition-all">
+                     <div key={u._id} onClick={() => handleShareToFriend(u)} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-xl cursor-pointer transition-all">
                         <div className="flex items-center space-x-3">
                            <img src={u.profilePicture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} className="w-10 h-10 rounded-full border border-gray-100" alt="u" />
                            <span className="font-bold text-sm text-gray-700">{u.username}</span>

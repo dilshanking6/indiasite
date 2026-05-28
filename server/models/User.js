@@ -4,15 +4,16 @@ const bcrypt = require('bcryptjs');
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   email: { type: String, required: true, unique: true },
-  phoneNumber: { type: String, unique: true, sparse: true },
+  phoneNumber: { type: String, sparse: true },
   dob: { type: Date, required: true },
   password: { type: String }, // Optional when using Firebase Auth
-  firebaseUid: { type: String, unique: true, sparse: true },
+  firebaseUid: { type: String, sparse: true },
   profilePicture: { type: String, default: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lucky' },
   bio: { type: String, default: 'Jai Hind! Proud Indian.' },
   followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   savedReels: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Reel' }],
+  blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   createdAt: { type: Date, default: Date.now },
 });
 

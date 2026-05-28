@@ -47,6 +47,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/stories', require('./routes/stories'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/ideas', require('./routes/ideas'));
+app.use('/api/chat', require('./routes/chat'));
 
 // Basic Route
 app.get('/', (req, res) => {

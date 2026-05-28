@@ -3,12 +3,16 @@ import api from '../../api';
 import { Loader2, Heart, MessageCircle, Share2, Bookmark } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ReelCard from './ReelCard';
+import { useNavigate } from 'react-router-dom';
 
 const ReelsFeed = ({ type = 'all' }) => {
   const [content, setContent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeReelId, setActiveReelId] = useState(null);
+  const [commentPost, setCommentPost] = useState(null);
+  const [commentText, setCommentText] = useState('');
   const observer = useRef(null);
+  const navigate = useNavigate();
 
   const handleLikePost = async (postId) => {
     try {
@@ -25,6 +29,19 @@ const ReelsFeed = ({ type = 'all' }) => {
       alert('Saved to Bharat Gallery!');
     } catch (err) {
       console.error('Save failed:', err);
+    }
+  };
+
+  const handleCommentPost = async (e) => {
+    e.preventDefault();
+    if (!commentPost || !commentText.trim()) return;
+    try {
+      await api.post(`/api/reels/${commentPost._id}/comment`, { text: commentText });
+      setCommentText('');
+      setCommentPost(null);
+      fetchContent();
+    } catch (err) {
+      console.error('Comment failed:', err);
     }
   };
 
@@ -82,10 +99,10 @@ const ReelsFeed = ({ type = 'all' }) => {
               {item.mediaType === 'image' ? (
                 <div className="space-y-4">
                    <div className="flex items-center p-4 space-x-3">
-                      <div className="w-10 h-10 rounded-full bg-india-gradient p-[2px]">
+                      <div onClick={() => navigate(`/profile/${item.user?.username}`)} className="w-10 h-10 rounded-full bg-india-gradient p-[2px] cursor-pointer">
                          <img src={item.user?.profilePicture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.user?.username}`} className="w-full h-full rounded-full object-cover border-2 border-white" alt="user" />
                       </div>
-                      <span className="font-black text-sm">{item.user?.username}</span>
+                      <span onClick={() => navigate(`/profile/${item.user?.username}`)} className="font-black text-sm cursor-pointer hover:text-india-blue">@{item.user?.username}</span>
                    </div>
                    <img src={item.videoUrl} className="w-full aspect-square object-cover rounded-[2rem]" alt="post" />
                    
@@ -94,10 +111,10 @@ const ReelsFeed = ({ type = 'all' }) => {
                          <button onClick={() => handleLikePost(item._id)} className={`transition-all ${item.likes > 0 ? 'text-red-500' : 'text-gray-400'}`}>
                             <Heart size={24} fill={item.likes > 0 ? 'currentColor' : 'none'} />
                          </button>
-                         <button className="text-gray-400" onClick={() => alert('Comments section opening...')}>
+                         <button className="text-gray-400" onClick={() => setCommentPost(item)}>
                             <MessageCircle size={24} />
                          </button>
-                         <button className="text-gray-400" onClick={() => alert('Link copied to clipboard!')}>
+                         <button className="text-gray-400" onClick={() => alert(`Share link: ${window.location.origin}/reels?id=${item._id}`)}>
                             <Share2 size={24} />
                          </button>
                       </div>
@@ -108,7 +125,8 @@ const ReelsFeed = ({ type = 'all' }) => {
 
                    <div className="px-6 pb-6 space-y-2">
                       <p className="text-xs font-black text-gray-800">{item.likes || 0} likes</p>
-                      <p className="text-sm font-bold"><span className="text-india-blue mr-2 font-black">@{item.user?.username}</span>{item.caption}</p>
+                      <p className="text-sm font-bold"><span onClick={() => navigate(`/profile/${item.user?.username}`)} className="text-india-blue mr-2 font-black cursor-pointer">@{item.user?.username}</span>{item.caption}</p>
+                      {item.comments?.length > 0 && <p className="text-xs text-gray-500 font-bold">{item.comments.length} comments</p>}
                    </div>
                 </div>
               ) : (
@@ -133,6 +151,30 @@ const ReelsFeed = ({ type = 'all' }) => {
           </div>
         )}
       </div>
+
+      {commentPost && (
+        <div className="fixed inset-0 z-[220] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-[2rem] p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-black text-slate-900">Comments</h3>
+              <button onClick={() => setCommentPost(null)} className="text-slate-500 font-bold">Close</button>
+            </div>
+            <div className="max-h-60 overflow-y-auto space-y-3 mb-4">
+              {(commentPost.comments || []).map((c, i) => (
+                <div key={i} className="text-sm">
+                  <span className="font-black text-india-blue">@{c.user?.username || 'user'}</span>
+                  <span className="ml-2 text-slate-700">{c.text}</span>
+                </div>
+              ))}
+              {(!commentPost.comments || commentPost.comments.length === 0) && <p className="text-sm text-slate-400 font-bold">No comments yet</p>}
+            </div>
+            <form onSubmit={handleCommentPost} className="flex gap-2">
+              <input value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Add a comment..." className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-sm font-bold outline-none" />
+              <button className="bg-india-blue text-white px-5 rounded-xl font-black">Post</button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

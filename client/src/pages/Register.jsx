@@ -137,6 +137,12 @@ const Register = () => {
     setLoading(true);
     setError('');
     try {
+      if (!formData.username.trim() || !formData.password || !formData.dob) {
+        setError('Please complete username, password, and date of birth before registering.');
+        setLoading(false);
+        return;
+      }
+
       let firebaseUid = 'test-uid-' + Date.now();
       
       if (authMethod === 'phone') {
@@ -152,8 +158,12 @@ const Register = () => {
       }
 
       await register({
-        ...formData,
-        phoneNumber: formData.phone,
+        username: formData.username.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+        phoneNumber: formData.phone || undefined,
+        dob: formData.dob,
+        otp: formData.otp,
         firebaseUid
       });
       navigate('/');
@@ -343,7 +353,10 @@ const Register = () => {
           {step === 4 && (
             <motion.div key="s4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
               <input 
-                type="date" 
+                type="text"
+                inputMode="numeric"
+                placeholder="Date of Birth (YYYY-MM-DD)"
+                maxLength="10"
                 className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm font-bold focus:ring-2 focus:ring-india-blue/20 outline-none"
                 value={formData.dob}
                 onChange={(e) => setFormData({...formData, dob: e.target.value})}

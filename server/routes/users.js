@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const Notification = require('../models/Notification');
+const Reel = require('../models/Reel');
 const auth = require('../middleware/auth');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
@@ -46,10 +47,24 @@ router.get('/profile/:username', async (req, res) => {
     const user = await User.findOne({ username: req.params.username })
       .select('-password')
       .populate('followers', 'username profilePicture')
-      .populate('following', 'username profilePicture');
+      .populate('following', 'username profilePicture')
+      .populate('blockedUsers', 'username profilePicture');
     
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Get saved reels/posts for current user
+router.get('/saved-content', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('savedReels');
+    const saved = await Reel.find({ _id: { $in: user.savedReels || [] } })
+      .populate('user', 'username profilePicture')
+      .sort({ createdAt: -1 });
+    res.json(saved);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -87,6 +102,9 @@ router.post('/follow/:id', auth, async (req, res) => {
     const currentUser = await User.findById(req.user.id);
 
     if (!userToFollow) return res.status(404).json({ message: 'User not found' });
+    if (currentUser.blockedUsers?.includes(userToFollow._id) || userToFollow.blockedUsers?.includes(currentUser._id)) {
+      return res.status(403).json({ message: 'Follow is not available for blocked users' });
+    }
 
     const index = userToFollow.followers.indexOf(currentUser._id);
     let isFollowing = false;
@@ -113,6 +131,39 @@ router.post('/follow/:id', auth, async (req, res) => {
     await currentUser.save();
 
     res.json({ following: isFollowing });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Block/Unblock user
+router.post('/block/:id', auth, async (req, res) => {
+  try {
+    if (req.params.id === req.user.id) {
+      return res.status(400).json({ message: 'Cannot block yourself' });
+    }
+
+    const currentUser = await User.findById(req.user.id);
+    const targetUser = await User.findById(req.params.id);
+    if (!targetUser) return res.status(404).json({ message: 'User not found' });
+
+    const index = currentUser.blockedUsers.indexOf(targetUser._id);
+    let blocked = false;
+
+    if (index === -1) {
+      currentUser.blockedUsers.push(targetUser._id);
+      currentUser.following.pull(targetUser._id);
+      currentUser.followers.pull(targetUser._id);
+      targetUser.following.pull(currentUser._id);
+      targetUser.followers.pull(currentUser._id);
+      blocked = true;
+    } else {
+      currentUser.blockedUsers.splice(index, 1);
+    }
+
+    await currentUser.save();
+    await targetUser.save();
+    res.json({ blocked });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

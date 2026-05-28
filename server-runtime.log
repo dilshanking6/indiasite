@@ -1,0 +1,8 @@
+
+> server@1.0.0 start
+> node index.js
+
+◇ injected env (9) from .env // tip: ⌘ override existing { override: true }
+Connected to MongoDB Atlas
+Server is running on port 5000
+Mongoose disconnected

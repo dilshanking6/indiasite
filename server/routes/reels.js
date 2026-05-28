@@ -5,6 +5,7 @@ const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const Reel = require('../models/Reel');
 const Notification = require('../models/Notification');
+const User = require('../models/User');
 const auth = require('../middleware/auth');
 
 // Cloudinary Configuration
@@ -122,15 +123,35 @@ router.post('/:id/save', auth, async (req, res) => {
     const reel = await Reel.findById(req.params.id);
     const userId = req.user.id;
     const index = reel.savedBy.indexOf(userId);
+    const user = await User.findById(userId);
     
     if (index === -1) {
       reel.savedBy.push(userId);
+      user.savedReels.addToSet(reel._id);
     } else {
       reel.savedBy.splice(index, 1);
+      user.savedReels.pull(reel._id);
     }
     
     await reel.save();
+    await user.save();
     res.json({ saved: index === -1 });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Count a reel view
+router.post('/:id/view', async (req, res) => {
+  try {
+    const reel = await Reel.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { views: 1 } },
+      { new: true }
+    );
+
+    if (!reel) return res.status(404).json({ message: 'Reel not found' });
+    res.json({ views: reel.views });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
